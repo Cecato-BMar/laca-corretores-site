@@ -803,9 +803,9 @@ function renderHome(posts, properties = []) {
 
   <section class="section bairros" id="bairros">
     <div class="section-head">
-      <p class="eyebrow dark">SEO local forte</p>
-      <h2>Conteúdo direcionado para quem procura imóveis por bairro em Praia Grande.</h2>
-      <p>O site foi estruturado para criar páginas e posts sobre bairros, dúvidas e termos de busca de alta intenção, como apartamento à venda em Praia Grande, imóveis no Canto do Forte e avaliação imobiliária na Baixada Santista.</p>
+      <p class="eyebrow dark">Imóveis em Praia Grande SP</p>
+      <h2>Guias locais para comprar, vender ou avaliar imóveis com mais segurança.</h2>
+      <p>A Laca Corretores publica conteúdos pensados para quem pesquisa apartamento à venda em Praia Grande, casas perto da praia, imóveis no Canto do Forte, Guilhermina, Boqueirão e outros bairros da cidade. Cada página ajuda o cliente a comparar regiões, entender preços, tirar dúvidas e solicitar uma avaliação imobiliária na Baixada Santista com atendimento direto.</p>
     </div>
     <div class="bairro-grid">
       ${NEIGHBORHOODS.map((name) => `<a href="/imoveis?bairro=${encodeURIComponent(name)}">${escapeHtml(name)}</a>`).join("")}

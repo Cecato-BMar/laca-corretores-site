@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Admin | Laca Corretores</title>
+  <link rel="icon" href="/assets/laca-logo.png">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <section class="login-view" data-login-view hidden>
+      <form class="login-card" data-login-form>
+        <img src="/assets/laca-logo.png" alt="Laca Corretores">
+        <p class="eyebrow">Painel administrativo</p>
+        <h1>Gerencie postagens, SEO e vídeos da Laca.</h1>
+        <label>
+          Senha
+          <input type="password" name="password" autocomplete="current-password" required placeholder="Digite a senha do painel">
+        </label>
+        <button type="submit">Entrar no painel</button>
+        <p class="form-message" data-login-message></p>
+      </form>
+    </section>
+
+    <section class="app-view" data-app-view hidden>
+      <aside class="sidebar">
+        <a class="admin-brand" href="/">
+          <img src="/assets/laca-logo.png" alt="">
+          <span>
+            <strong>Laca Admin</strong>
+            <small>Conteúdo e SEO</small>
+          </span>
+        </a>
+        <nav>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#properties">Imóveis</a>
+          <a href="#property-editor">Novo imóvel</a>
+          <a href="#editor">Nova postagem</a>
+          <a href="/" target="_blank" rel="noopener">Ver site</a>
+        </nav>
+        <button class="ghost-button" type="button" data-logout>Sair</button>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar" id="dashboard">
+          <div>
+            <p class="eyebrow">Administração</p>
+            <h1>Publicações da Laca Corretores</h1>
+          </div>
+          <button class="primary-button" type="button" data-new-post>Nova postagem</button>
+        </header>
+
+        <div class="stats-grid" data-stats></div>
+
+        <section class="panel" id="properties">
+          <div class="panel-head">
+            <div>
+              <h2>Imóveis à venda</h2>
+              <p>Gerencie a vitrine pública com preço, fotos, ficha técnica, filtros e SEO.</p>
+            </div>
+            <div class="filters">
+              <input type="search" placeholder="Buscar por título, bairro, referência ou tipo" data-property-search>
+              <select data-property-status-filter>
+                <option value="all">Todos</option>
+                <option value="published">Publicados</option>
+                <option value="draft">Rascunhos</option>
+              </select>
+            </div>
+          </div>
+          <div class="post-list" data-property-list></div>
+        </section>
+
+        <section class="panel editor-panel" id="property-editor">
+          <div class="panel-head">
+            <div>
+              <h2 data-property-editor-title>Novo imóvel</h2>
+              <p>Preencha a ficha completa para uma experiência parecida com os melhores portais imobiliários.</p>
+            </div>
+            <button class="ghost-button" type="button" data-reset-property-form>Limpar</button>
+          </div>
+
+          <form class="editor-grid" data-property-form>
+            <input type="hidden" name="id">
+
+            <div class="form-stack">
+              <label>Título do anúncio
+                <input name="title" required maxlength="120" placeholder="Ex.: Apartamento com vista mar no Canto do Forte">
+              </label>
+              <div class="two-cols">
+                <label>Referência
+                  <input name="reference" placeholder="LACA-1001">
+                </label>
+                <label>Slug
+                  <input name="slug" maxlength="110" placeholder="gerado automaticamente">
+                </label>
+              </div>
+              <label>Resumo curto
+                <textarea name="shortDescription" rows="3" maxlength="220" placeholder="Resumo exibido no card e nos buscadores"></textarea>
+              </label>
+              <label>Descrição completa
+                <textarea name="description" rows="10" required placeholder="Descreva planta, localização, documentação, diferenciais e perfil ideal de comprador."></textarea>
+              </label>
+              <label>Destaques, um por linha
+                <textarea name="highlights" rows="5" placeholder="Vista mar&#10;Varanda gourmet&#10;Aceita financiamento"></textarea>
+              </label>
+              <label>Características e lazer, uma por linha
+                <textarea name="features" rows="6" placeholder="Piscina&#10;Academia&#10;Portaria 24 horas"></textarea>
+              </label>
+              <label>Próximo de, um por linha
+                <textarea name="nearby" rows="5" placeholder="Praia&#10;Mercado&#10;Restaurantes"></textarea>
+              </label>
+            </div>
+
+            <div class="form-stack">
+              <div class="two-cols">
+                <label>Status
+                  <select name="status">
+                    <option value="draft">Rascunho</option>
+                    <option value="published">Publicado</option>
+                  </select>
+                </label>
+                <label>Situação
+                  <select name="saleStatus">
+                    <option value="available">Disponível</option>
+                    <option value="reserved">Reservado</option>
+                    <option value="sold">Vendido</option>
+                  </select>
+                </label>
+              </div>
+              <div class="two-cols">
+                <label>Tipo
+                  <input name="propertyType" value="Apartamento">
+                </label>
+                <label>Bairro
+                  <input name="neighborhood" value="Praia Grande">
+                </label>
+              </div>
+              <div class="two-cols">
+                <label>Preço de venda
+                  <input name="price" required inputmode="numeric" placeholder="895000">
+                </label>
+                <label>Condomínio
+                  <input name="condoFee" inputmode="numeric" placeholder="780">
+                </label>
+              </div>
+              <div class="two-cols">
+                <label>IPTU
+                  <input name="iptu" inputmode="numeric" placeholder="420">
+                </label>
+                <label>Distância da praia
+                  <input name="distanceToBeach" placeholder="180 m da praia">
+                </label>
+              </div>
+              <div class="two-cols">
+                <label>Área útil m²
+                  <input name="usableArea" inputmode="numeric" placeholder="94">
+                </label>
+                <label>Área total m²
+                  <input name="totalArea" inputmode="numeric" placeholder="132">
+                </label>
+              </div>
+              <div class="four-cols">
+                <label>Dorm.
+                  <input name="bedrooms" inputmode="numeric" value="2">
+                </label>
+                <label>Suítes
+                  <input name="suites" inputmode="numeric" value="1">
+                </label>
+                <label>Banheiros
+                  <input name="bathrooms" inputmode="numeric" value="2">
+                </label>
+                <label>Vagas
+                  <input name="parkingSpaces" inputmode="numeric" value="1">
+                </label>
+              </div>
+              <div class="two-cols">
+                <label>Andar
+                  <input name="floor" placeholder="12º andar">
+                </label>
+                <label>Cidade/UF
+                  <input name="cityState" value="Praia Grande/SP">
+                </label>
+              </div>
+              <label>Endereço
+                <input name="address" placeholder="Endereço sob consulta">
+              </label>
+              <label>Google Maps URL
+                <input name="mapUrl" placeholder="https://maps.google.com/...">
+              </label>
+              <div class="check-grid">
+                <label class="check-row"><input type="checkbox" name="featured"> Destacar na home</label>
+                <label class="check-row"><input type="checkbox" name="acceptsFinancing" checked> Aceita financiamento</label>
+                <label class="check-row"><input type="checkbox" name="acceptsExchange"> Estuda permuta</label>
+                <label class="check-row"><input type="checkbox" name="furnished"> Mobiliado</label>
+              </div>
+              <label>Imagens da galeria, uma URL por linha
+                <textarea name="images" rows="4" placeholder="/assets/praia-grande-orla.jpg"></textarea>
+              </label>
+              <label class="upload-box">Upload de imagens para galeria
+                <input type="file" accept="image/*" data-property-image-upload multiple>
+                <span data-property-image-status>Selecione uma ou várias imagens para adicionar à galeria</span>
+              </label>
+              <label>Tipo de vídeo
+                <select name="mediaType" data-property-media-type>
+                  <option value="none">Sem vídeo</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="upload">Upload local</option>
+                </select>
+              </label>
+              <label data-property-youtube-row>YouTube URL
+                <input name="youtubeUrl" placeholder="https://www.youtube.com/watch?v=...">
+              </label>
+              <label data-property-upload-row>URL do vídeo enviado
+                <input name="uploadUrl" placeholder="/uploads/video.mp4">
+              </label>
+              <label class="upload-box" data-property-video-upload-row>Upload de vídeo
+                <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" data-property-video-upload>
+                <span data-property-video-status>MP4, WEBM, MOV ou M4V</span>
+              </label>
+              <label>Título SEO
+                <input name="seoTitle" maxlength="80" placeholder="Apartamento à venda no Canto do Forte">
+              </label>
+              <label>Descrição SEO
+                <textarea name="seoDescription" rows="3" maxlength="180" placeholder="Descrição com tipo, bairro, cidade, dormitórios, vagas e diferencial principal"></textarea>
+              </label>
+              <div class="editor-actions">
+                <button class="primary-button" type="submit" data-save-property-button>Salvar imóvel</button>
+                <a class="ghost-link" href="/imoveis" target="_blank" rel="noopener">Ver vitrine</a>
+              </div>
+              <p class="form-message" data-property-message role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Conteúdo publicado</h2>
+              <p>Edite, publique, transforme em rascunho ou exclua postagens.</p>
+            </div>
+            <div class="filters">
+              <input type="search" placeholder="Buscar por título, bairro ou tag" data-search>
+              <select data-status-filter>
+                <option value="all">Todos</option>
+                <option value="published">Publicados</option>
+                <option value="draft">Rascunhos</option>
+              </select>
+            </div>
+          </div>
+          <div class="post-list" data-post-list></div>
+        </section>
+
+        <section class="panel editor-panel" id="editor">
+          <div class="panel-head">
+            <div>
+              <h2 data-editor-title>Nova postagem</h2>
+              <p>Conteúdo forte por bairro, com mídia e metadados próprios.</p>
+            </div>
+            <button class="ghost-button" type="button" data-reset-form>Limpar</button>
+          </div>
+
+          <form class="editor-grid" data-editor-form>
+            <input type="hidden" name="id">
+
+            <div class="form-stack">
+              <label>Título
+                <input name="title" required maxlength="110" placeholder="Ex.: Guia para comprar apartamento na Guilhermina">
+              </label>
+
+              <label>Slug
+                <input name="slug" maxlength="110" placeholder="gerado automaticamente se ficar vazio">
+              </label>
+
+              <label>Resumo
+                <textarea name="excerpt" rows="3" maxlength="220" placeholder="Resumo exibido nos cards e no Google"></textarea>
+              </label>
+
+              <label>Conteúdo
+                <textarea name="body" rows="12" required placeholder="Escreva em parágrafos. Use ## Subtítulo para seções."></textarea>
+              </label>
+            </div>
+
+            <div class="form-stack">
+              <div class="two-cols">
+                <label>Categoria
+                  <input name="category" value="Mercado imobiliário">
+                </label>
+                <label>Bairro/região
+                  <input name="neighborhood" value="Praia Grande">
+                </label>
+              </div>
+
+              <label>Tags separadas por vírgula
+                <input name="tags" placeholder="Praia Grande SP, Canto do Forte, apartamento na praia">
+              </label>
+
+              <div class="two-cols">
+                <label>Status
+                  <select name="status">
+                    <option value="draft">Rascunho</option>
+                    <option value="published">Publicado</option>
+                  </select>
+                </label>
+                <label class="check-row">
+                  <input type="checkbox" name="featured">
+                  Destacar na home
+                </label>
+              </div>
+
+              <label>Imagem de capa
+                <input name="coverImage" placeholder="/assets/praia-grande-orla.jpg ou URL https">
+              </label>
+              <label class="upload-box">Upload de capa
+                <input type="file" accept="image/*" data-cover-upload>
+                <span data-cover-status>PNG, JPG, WEBP ou GIF</span>
+              </label>
+
+              <label>Tipo de vídeo
+                <select name="mediaType" data-media-type>
+                  <option value="none">Sem vídeo</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="upload">Upload local</option>
+                </select>
+              </label>
+              <label data-youtube-row>YouTube URL
+                <input name="youtubeUrl" placeholder="https://www.youtube.com/watch?v=...">
+              </label>
+              <label data-upload-row>URL do vídeo enviado
+                <input name="uploadUrl" placeholder="/uploads/video.mp4">
+              </label>
+              <label class="upload-box" data-video-upload-row>Upload de vídeo
+                <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" data-video-upload>
+                <span data-video-status>MP4, WEBM, MOV ou M4V</span>
+              </label>
+
+              <label>Título SEO
+                <input name="seoTitle" maxlength="80" placeholder="Título otimizado para Google">
+              </label>
+              <label>Descrição SEO
+                <textarea name="seoDescription" rows="3" maxlength="180" placeholder="Descrição objetiva com bairro, serviço e cidade"></textarea>
+              </label>
+
+              <label>Autor
+                <input name="author" value="Laca Corretores">
+              </label>
+
+              <div class="editor-actions">
+                <button class="primary-button" type="submit" data-save-button>Salvar postagem</button>
+                <a class="ghost-link" href="/blog" target="_blank" rel="noopener">Ver blog</a>
+              </div>
+              <p class="form-message" data-editor-message role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="/admin.js" defer></script>
+</body>
+</html>

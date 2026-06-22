@@ -1,0 +1,24 @@
+{
+  "name": "laca-corretores-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site dinamico com painel administrativo para a Laca Corretores Imobiliarios.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "laca corretores",
+    "imobiliaria praia grande",
+    "corretor de imoveis praia grande",
+    "praia grande sp"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@vercel/blob": "^2.4.1"
+  }
+}

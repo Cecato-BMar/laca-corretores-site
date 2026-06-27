@@ -19,6 +19,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 8;
 const ASSET_VERSION = "20260622-fit-gallery";
 const BLOB_DB_PATH = process.env.LACA_BLOB_DB_PATH || "laca/data/content.json";
 const BLOB_DB_ACCESS = process.env.LACA_BLOB_DB_ACCESS || "private";
+const BLOB_DB_STORAGE_ACCESS = process.env.LACA_BLOB_DB_STORAGE_ACCESS || "public";
 const BLOB_DB_SNAPSHOT_PREFIX = process.env.LACA_BLOB_DB_SNAPSHOT_PREFIX || "laca/data/snapshots";
 const BLOB_UPLOAD_PREFIX = process.env.LACA_BLOB_UPLOAD_PREFIX || "laca/uploads";
 
@@ -254,21 +255,27 @@ async function readLocalSeedDb() {
   }
 }
 
-async function getBlobDbResult(pathname = BLOB_DB_PATH, access = BLOB_DB_ACCESS) {
+async function getBlobDbResult(pathname = BLOB_DB_PATH, access = BLOB_DB_STORAGE_ACCESS) {
   const { get } = await getBlobSdk();
   try {
-    const result = await get(pathname, { access, useCache: false });
+    const options = access === "private" ? { access, useCache: false } : { access };
+    const result = await get(pathname, options);
     return result?.statusCode === 200 ? result : null;
   } catch (error) {
-    if (["BlobNotFoundError", "BlobAccessError"].includes(error?.name)) return null;
+    if (isOptionalBlobReadError(error)) return null;
     throw error;
   }
+}
+
+function isOptionalBlobReadError(error) {
+  if (["BlobNotFoundError", "BlobAccessError"].includes(error?.name)) return true;
+  return /Failed to fetch blob: 400 Bad Request/i.test(error?.message || "");
 }
 
 async function readBlobDb() {
   const snapshot = await getLatestBlobDbSnapshot();
   if (snapshot) {
-    const result = await getBlobDbResult(snapshot.pathname, BLOB_DB_ACCESS);
+    const result = await getBlobDbResult(snapshot.pathname, BLOB_DB_STORAGE_ACCESS);
     if (result?.stream) return parseDbJson(await readFreshBlobText(result));
   }
 
@@ -286,10 +293,52 @@ async function readBlobDb() {
 
 function parseDbJson(raw) {
   const parsed = JSON.parse(raw);
+  if (parsed?.encrypted === true && parsed?.data && parsed?.iv && parsed?.tag) {
+    return parseDbJson(decryptDbPayload(parsed));
+  }
   return {
     posts: Array.isArray(parsed.posts) ? parsed.posts : [],
     properties: Array.isArray(parsed.properties) ? parsed.properties : []
   };
+}
+
+function shouldEncryptBlobDb() {
+  return BLOB_DB_ACCESS === "private";
+}
+
+function blobDbEncryptionKey() {
+  const secret = process.env.LACA_BLOB_DB_SECRET || process.env.LACA_SESSION_SECRET || ADMIN_PASSWORD;
+  return crypto.createHash("sha256").update(`laca-content-db:${secret}`).digest();
+}
+
+function serializeDbPayload(data) {
+  const json = `${JSON.stringify(data, null, 2)}\n`;
+  if (!shouldEncryptBlobDb()) return json;
+
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", blobDbEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(json, "utf8"), cipher.final()]);
+  return `${JSON.stringify({
+    encrypted: true,
+    version: 1,
+    algorithm: "aes-256-gcm",
+    iv: iv.toString("base64url"),
+    tag: cipher.getAuthTag().toString("base64url"),
+    data: encrypted.toString("base64url")
+  }, null, 2)}\n`;
+}
+
+function decryptDbPayload(payload) {
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    blobDbEncryptionKey(),
+    Buffer.from(payload.iv, "base64url")
+  );
+  decipher.setAuthTag(Buffer.from(payload.tag, "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(payload.data, "base64url")),
+    decipher.final()
+  ]).toString("utf8");
 }
 
 async function getLatestBlobDbSnapshot() {
@@ -317,7 +366,7 @@ async function getLatestBlobDbSnapshot() {
 async function getLegacyBlobDbResult() {
   const publicResult = await getBlobDbResult(BLOB_DB_PATH, "public");
   if (publicResult) return publicResult;
-  if (BLOB_DB_ACCESS !== "public") return getBlobDbResult(BLOB_DB_PATH, BLOB_DB_ACCESS);
+  if (BLOB_DB_STORAGE_ACCESS !== "public") return getBlobDbResult(BLOB_DB_PATH, BLOB_DB_STORAGE_ACCESS);
   return null;
 }
 
@@ -343,8 +392,8 @@ async function readFreshBlobText(result) {
 async function writeBlobDb(data) {
   const { put } = await getBlobSdk();
   const snapshotPath = `${BLOB_DB_SNAPSHOT_PREFIX}/${Date.now()}-${crypto.randomBytes(6).toString("hex")}.json`;
-  await put(snapshotPath, `${JSON.stringify(data, null, 2)}\n`, {
-    access: BLOB_DB_ACCESS,
+  await put(snapshotPath, serializeDbPayload(data), {
+    access: BLOB_DB_STORAGE_ACCESS,
     addRandomSuffix: false,
     allowOverwrite: false,
     cacheControlMaxAge: 60,

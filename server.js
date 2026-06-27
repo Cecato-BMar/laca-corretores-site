@@ -275,12 +275,31 @@ async function readBlobDb() {
     return seed;
   }
 
-  const raw = await new Response(result.stream).text();
+  const raw = await readFreshBlobText(result);
   const parsed = JSON.parse(raw);
   return {
     posts: Array.isArray(parsed.posts) ? parsed.posts : [],
     properties: Array.isArray(parsed.properties) ? parsed.properties : []
   };
+}
+
+async function readFreshBlobText(result) {
+  const blobUrl = result.downloadUrl || result.url;
+  if (blobUrl) {
+    try {
+      const freshUrl = new URL(blobUrl);
+      freshUrl.searchParams.set("_lacaFresh", `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`);
+      const response = await fetch(freshUrl, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" }
+      });
+      if (response.ok) return response.text();
+    } catch {
+      // Fall back to the SDK stream below if the runtime cannot fetch the Blob URL directly.
+    }
+  }
+
+  return new Response(result.stream).text();
 }
 
 async function writeBlobDb(data) {

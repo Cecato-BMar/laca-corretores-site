@@ -260,7 +260,7 @@ async function getBlobDbResult(pathname = BLOB_DB_PATH, access = BLOB_DB_ACCESS)
     const result = await get(pathname, { access, useCache: false });
     return result?.statusCode === 200 ? result : null;
   } catch (error) {
-    if (error?.name === "BlobNotFoundError") return null;
+    if (["BlobNotFoundError", "BlobAccessError"].includes(error?.name)) return null;
     throw error;
   }
 }
@@ -315,9 +315,9 @@ async function getLatestBlobDbSnapshot() {
 }
 
 async function getLegacyBlobDbResult() {
-  const primary = await getBlobDbResult(BLOB_DB_PATH, BLOB_DB_ACCESS);
-  if (primary) return primary;
-  if (BLOB_DB_ACCESS !== "public") return getBlobDbResult(BLOB_DB_PATH, "public");
+  const publicResult = await getBlobDbResult(BLOB_DB_PATH, "public");
+  if (publicResult) return publicResult;
+  if (BLOB_DB_ACCESS !== "public") return getBlobDbResult(BLOB_DB_PATH, BLOB_DB_ACCESS);
   return null;
 }
 

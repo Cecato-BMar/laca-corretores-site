@@ -21,7 +21,6 @@ const BLOB_DB_PATH = process.env.LACA_BLOB_DB_PATH || "laca/data/content.json";
 const BLOB_DB_ACCESS = process.env.LACA_BLOB_DB_ACCESS || "private";
 const BLOB_UPLOAD_PREFIX = process.env.LACA_BLOB_UPLOAD_PREFIX || "laca/uploads";
 
-const sessions = new Map();
 const loginAttempts = new Map();
 let blobSdkPromise = null;
 
@@ -312,7 +311,7 @@ function getPublishedProperties(db) {
 function parseJsonBody(req, maxBytes = 1024 * 1024) {
   return readRawBody(req, maxBytes).then((buffer) => {
     if (!buffer.length) return {};
-    return JSON.parse(buffer.toString("utf8"));
+    return JSON.parse(buffer.toString("utf8").replace(/^\uFEFF/, ""));
   });
 }
 
@@ -348,23 +347,42 @@ function parseCookies(req) {
   );
 }
 
+function safeTimingEqual(left, right) {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function sessionSecret() {
+  return process.env.LACA_SESSION_SECRET || crypto.createHash("sha256").update(`laca-session:${ADMIN_PASSWORD}`).digest("hex");
+}
+
+function signSessionPayload(payload) {
+  return crypto.createHmac("sha256", sessionSecret()).update(payload).digest("base64url");
+}
+
 function createSession() {
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, { createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL_MS });
-  return token;
+  const payload = Buffer.from(JSON.stringify({
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_TTL_MS,
+    nonce: crypto.randomBytes(16).toString("hex")
+  })).toString("base64url");
+  return `${payload}.${signSessionPayload(payload)}`;
 }
 
 function getSession(req) {
   const token = parseCookies(req).laca_session;
   if (!token) return null;
-  const session = sessions.get(token);
-  if (!session) return null;
-  if (session.expiresAt < Date.now()) {
-    sessions.delete(token);
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature || !safeTimingEqual(signature, signSessionPayload(payload))) return null;
+  try {
+    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!Number.isFinite(session.expiresAt) || session.expiresAt < Date.now()) return null;
+    return { token, session };
+  } catch {
     return null;
   }
-  session.expiresAt = Date.now() + SESSION_TTL_MS;
-  return { token, session };
 }
 
 function isAdmin(req) {
@@ -1499,8 +1517,6 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/logout") {
-    const session = getSession(req);
-    if (session) sessions.delete(session.token);
     sendJson(res, 200, { ok: true }, {
       "Set-Cookie": "laca_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"
     });

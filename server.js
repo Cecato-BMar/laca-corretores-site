@@ -19,6 +19,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 8;
 const ASSET_VERSION = "20260622-fit-gallery";
 const BLOB_DB_PATH = process.env.LACA_BLOB_DB_PATH || "laca/data/content.json";
 const BLOB_DB_ACCESS = process.env.LACA_BLOB_DB_ACCESS || "private";
+const BLOB_DB_SNAPSHOT_PREFIX = process.env.LACA_BLOB_DB_SNAPSHOT_PREFIX || "laca/data/snapshots";
 const BLOB_UPLOAD_PREFIX = process.env.LACA_BLOB_UPLOAD_PREFIX || "laca/uploads";
 
 const loginAttempts = new Map();
@@ -237,10 +238,7 @@ async function getBlobSdk() {
 }
 
 async function ensureBlobDb() {
-  const existing = await getBlobDbResult();
-  if (existing) return;
-
-  await writeBlobDb(await readLocalSeedDb());
+  await readBlobDb();
 }
 
 async function readLocalSeedDb() {
@@ -256,10 +254,10 @@ async function readLocalSeedDb() {
   }
 }
 
-async function getBlobDbResult() {
+async function getBlobDbResult(pathname = BLOB_DB_PATH, access = BLOB_DB_ACCESS) {
   const { get } = await getBlobSdk();
   try {
-    const result = await get(BLOB_DB_PATH, { access: BLOB_DB_ACCESS });
+    const result = await get(pathname, { access, useCache: false });
     return result?.statusCode === 200 ? result : null;
   } catch (error) {
     if (error?.name === "BlobNotFoundError") return null;
@@ -268,14 +266,25 @@ async function getBlobDbResult() {
 }
 
 async function readBlobDb() {
-  const result = await getBlobDbResult();
-  if (!result?.stream) {
-    const seed = await readLocalSeedDb();
-    await writeBlobDb(seed);
-    return seed;
+  const snapshot = await getLatestBlobDbSnapshot();
+  if (snapshot) {
+    const result = await getBlobDbResult(snapshot.pathname, BLOB_DB_ACCESS);
+    if (result?.stream) return parseDbJson(await readFreshBlobText(result));
   }
 
-  const raw = await readFreshBlobText(result);
+  const legacy = await getLegacyBlobDbResult();
+  if (legacy?.stream) {
+    const data = parseDbJson(await readFreshBlobText(legacy));
+    await writeBlobDb(data);
+    return data;
+  }
+
+  const seed = await readLocalSeedDb();
+  await writeBlobDb(seed);
+  return seed;
+}
+
+function parseDbJson(raw) {
   const parsed = JSON.parse(raw);
   return {
     posts: Array.isArray(parsed.posts) ? parsed.posts : [],
@@ -283,8 +292,37 @@ async function readBlobDb() {
   };
 }
 
+async function getLatestBlobDbSnapshot() {
+  const { list } = await getBlobSdk();
+  const snapshots = [];
+  let cursor;
+
+  do {
+    const page = await list({
+      prefix: `${BLOB_DB_SNAPSHOT_PREFIX}/`,
+      limit: 1000,
+      cursor
+    });
+    snapshots.push(...page.blobs.filter((blob) => blob.pathname.endsWith(".json")));
+    cursor = page.cursor;
+  } while (cursor);
+
+  snapshots.sort((a, b) => {
+    const dateDiff = new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+    return dateDiff || b.pathname.localeCompare(a.pathname);
+  });
+  return snapshots[0] || null;
+}
+
+async function getLegacyBlobDbResult() {
+  const primary = await getBlobDbResult(BLOB_DB_PATH, BLOB_DB_ACCESS);
+  if (primary) return primary;
+  if (BLOB_DB_ACCESS !== "public") return getBlobDbResult(BLOB_DB_PATH, "public");
+  return null;
+}
+
 async function readFreshBlobText(result) {
-  const blobUrl = result.downloadUrl || result.url;
+  const blobUrl = result.blob?.downloadUrl || result.blob?.url || result.downloadUrl || result.url;
   if (blobUrl) {
     try {
       const freshUrl = new URL(blobUrl);
@@ -304,9 +342,11 @@ async function readFreshBlobText(result) {
 
 async function writeBlobDb(data) {
   const { put } = await getBlobSdk();
-  await put(BLOB_DB_PATH, `${JSON.stringify(data, null, 2)}\n`, {
+  const snapshotPath = `${BLOB_DB_SNAPSHOT_PREFIX}/${Date.now()}-${crypto.randomBytes(6).toString("hex")}.json`;
+  await put(snapshotPath, `${JSON.stringify(data, null, 2)}\n`, {
     access: BLOB_DB_ACCESS,
-    allowOverwrite: true,
+    addRandomSuffix: false,
+    allowOverwrite: false,
     cacheControlMaxAge: 60,
     contentType: "application/json"
   });

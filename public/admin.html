@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Admin | Laca Corretores</title>
   <link rel="icon" href="/assets/laca-logo.png">
-  <link rel="stylesheet" href="/admin.css">
+  <link rel="stylesheet" href="/admin.css?v=20260629-cover">
 </head>
 <body>
   <main class="admin-shell">
@@ -195,6 +195,13 @@
                 <label class="check-row"><input type="checkbox" name="acceptsExchange"> Estuda permuta</label>
                 <label class="check-row"><input type="checkbox" name="furnished"> Mobiliado</label>
               </div>
+              <label>Foto principal/capa do imóvel
+                <input name="coverImage" placeholder="Cole a URL da foto principal ou use uma foto da galeria">
+              </label>
+              <div class="cover-tools">
+                <button class="ghost-button" type="button" data-property-cover-first>Usar primeira foto da galeria como capa</button>
+                <small>A capa aparece nos cards, no SEO, no WhatsApp e como primeira foto do carrossel.</small>
+              </div>
               <label>Imagens da galeria, uma URL por linha
                 <textarea name="images" rows="4" placeholder="/assets/praia-grande-orla.jpg"></textarea>
               </label>
@@ -358,6 +365,6 @@
     </section>
   </main>
 
-  <script src="/admin.js" defer></script>
+  <script src="/admin.js?v=20260629-cover" defer></script>
 </body>
 </html>

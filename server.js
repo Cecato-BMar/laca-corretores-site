@@ -601,7 +601,16 @@ function normalizePropertyInput(input, db, existing = null) {
   const id = existing?.id || `property-${crypto.randomUUID()}`;
   const slug = uniqueSlug(input.slug || title, db.properties, id);
   const publishedAt = status === "published" ? existing?.publishedAt || input.publishedAt || nowIso() : existing?.publishedAt || "";
-  const images = normalizeImages(input.images, sanitizeMediaUrl(input.coverImage) || COMPANY.hero);
+  let images = normalizeImages(input.images);
+  if (images.length > 1 && images.some((image) => image !== COMPANY.hero)) {
+    images = images.filter((image) => image !== COMPANY.hero);
+  }
+  let coverImage = sanitizeMediaUrl(input.coverImage);
+  if (coverImage === COMPANY.hero && images.some((image) => image !== COMPANY.hero)) {
+    coverImage = "";
+  }
+  coverImage = coverImage || images[0] || COMPANY.hero;
+  images = normalizeImages(images, coverImage);
   const usableArea = numberValue(input.usableArea);
   const totalArea = numberValue(input.totalArea);
   const bedrooms = intValue(input.bedrooms);
@@ -644,7 +653,7 @@ function normalizePropertyInput(input, db, existing = null) {
     highlights: normalizeList(input.highlights).slice(0, 8),
     features: normalizeList(input.features).slice(0, 30),
     nearby: normalizeList(input.nearby).slice(0, 18),
-    coverImage: images[0] || COMPANY.hero,
+    coverImage,
     images,
     mediaType: ["none", "youtube", "upload"].includes(input.mediaType) ? input.mediaType : "none",
     youtubeUrl: String(input.youtubeUrl || "").trim(),

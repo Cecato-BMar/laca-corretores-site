@@ -448,6 +448,20 @@ textarea {
   font-weight: 700;
 }
 
+.cover-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-top: -4px;
+}
+
+.cover-tools small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
 .editor-actions {
   display: flex;
   flex-wrap: wrap;

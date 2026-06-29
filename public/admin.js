@@ -9,6 +9,8 @@ const state = {
   propertyStatus: "all"
 };
 
+const DEFAULT_PROPERTY_IMAGE = "/assets/praia-grande-orla.jpg";
+
 const loginView = document.querySelector("[data-login-view]");
 const appView = document.querySelector("[data-app-view]");
 const loginForm = document.querySelector("[data-login-form]");
@@ -50,6 +52,7 @@ const propertyImageUpload = document.querySelector("[data-property-image-upload]
 const propertyVideoUpload = document.querySelector("[data-property-video-upload]");
 const propertyImageStatus = document.querySelector("[data-property-image-status]");
 const propertyVideoStatus = document.querySelector("[data-property-video-status]");
+const propertyCoverFirstButton = document.querySelector("[data-property-cover-first]");
 
 boot();
 
@@ -94,6 +97,7 @@ function bindEvents() {
   });
   resetPropertyButton?.addEventListener("click", () => resetPropertyEditor(true));
   propertyMediaTypeInput?.addEventListener("change", syncPropertyMediaRows);
+  propertyCoverFirstButton?.addEventListener("click", useFirstPropertyImageAsCover);
   propertyImageUpload?.addEventListener("change", () => uploadFile(propertyImageUpload, "property-image"));
   propertyVideoUpload?.addEventListener("change", () => uploadFile(propertyVideoUpload, "property-video"));
 }
@@ -297,7 +301,8 @@ function resetPropertyEditor(scroll = false) {
   propertyForm.elements.bathrooms.value = "2";
   propertyForm.elements.parkingSpaces.value = "1";
   propertyForm.elements.acceptsFinancing.checked = true;
-  propertyForm.elements.images.value = "/assets/praia-grande-orla.jpg";
+  propertyForm.elements.coverImage.value = "";
+  propertyForm.elements.images.value = "";
   propertyForm.elements.mediaType.value = "none";
   syncPropertyMediaRows();
   setMessage(propertyMessage, "");
@@ -358,6 +363,7 @@ function fillPropertyForm(property) {
   propertyForm.elements.acceptsFinancing.checked = Boolean(property.acceptsFinancing);
   propertyForm.elements.acceptsExchange.checked = Boolean(property.acceptsExchange);
   propertyForm.elements.furnished.checked = Boolean(property.furnished);
+  propertyForm.elements.coverImage.value = property.coverImage || firstLine((property.images || []).join("\n")) || "";
   propertyForm.elements.images.value = (property.images || []).join("\n");
   propertyForm.elements.mediaType.value = property.mediaType || "none";
   propertyForm.elements.youtubeUrl.value = property.youtubeUrl || "";
@@ -436,6 +442,11 @@ function postPayload() {
 function propertyPayload() {
   const form = new FormData(propertyForm);
   const [city, stateCode] = String(form.get("cityState") || "Praia Grande/SP").split("/");
+  const images = propertyImageLines();
+  let coverImage = String(form.get("coverImage") || "").trim();
+  if (coverImage === DEFAULT_PROPERTY_IMAGE && images.some((image) => image !== DEFAULT_PROPERTY_IMAGE)) {
+    coverImage = "";
+  }
   return {
     title: form.get("title"),
     reference: form.get("reference"),
@@ -468,14 +479,40 @@ function propertyPayload() {
     acceptsFinancing: form.get("acceptsFinancing") === "on",
     acceptsExchange: form.get("acceptsExchange") === "on",
     furnished: form.get("furnished") === "on",
-    images: form.get("images"),
-    coverImage: firstLine(form.get("images")) || "/assets/praia-grande-orla.jpg",
+    images: images.join("\n"),
+    coverImage: coverImage || images[0] || "",
     mediaType: form.get("mediaType"),
     youtubeUrl: form.get("youtubeUrl"),
     uploadUrl: form.get("uploadUrl"),
     seoTitle: form.get("seoTitle"),
     seoDescription: form.get("seoDescription")
   };
+}
+
+function propertyImageLines() {
+  return String(propertyForm.elements.images.value || "")
+    .split(/\r?\n|,/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line, index, lines) => lines.indexOf(line) === index);
+}
+
+function useFirstPropertyImageAsCover() {
+  const firstImage = propertyImageLines()[0];
+  if (!firstImage) {
+    setMessage(propertyMessage, "Adicione ao menos uma imagem na galeria para usar como capa.", "error");
+    return;
+  }
+  propertyForm.elements.coverImage.value = firstImage;
+  movePropertyCoverToTop();
+  setMessage(propertyMessage, "Foto principal definida a partir da primeira imagem da galeria.", "success");
+}
+
+function movePropertyCoverToTop() {
+  const coverImage = String(propertyForm.elements.coverImage.value || "").trim();
+  if (!coverImage) return;
+  const images = propertyImageLines().filter((image) => image !== coverImage);
+  propertyForm.elements.images.value = [coverImage, ...images].join("\n");
 }
 
 function syncPostMediaRows() {
@@ -536,6 +573,11 @@ async function uploadFile(input, kind) {
     }
     if (kind === "property-image") {
       uploaded.forEach((data) => appendLine(propertyForm.elements.images, data.url));
+      const currentCover = String(propertyForm.elements.coverImage.value || "").trim();
+      if (!currentCover || currentCover === DEFAULT_PROPERTY_IMAGE) {
+        propertyForm.elements.coverImage.value = uploaded[0].url;
+      }
+      movePropertyCoverToTop();
       statusEl.textContent = uploaded.length === 1
         ? `Imagem adicionada: ${uploaded[0].name}`
         : `${uploaded.length} imagens adicionadas à galeria`;
